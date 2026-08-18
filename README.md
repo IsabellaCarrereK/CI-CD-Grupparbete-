@@ -21,6 +21,7 @@ For implementation details, see:
 - [`src/pokemon_pipeline/README.md`](src/pokemon_pipeline/README.md)
 - [`data/README.md`](data/README.md)
 - [`tests/README.md`](tests/README.md)
+- [`.github/workflows/README.md`](.github/workflows/README.md)
 
 ## Quick start
 
