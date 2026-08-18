@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pokemon_pipeline.api import PokeAPIClient, PokeAPIError
@@ -80,7 +80,7 @@ def extract_location_area(
             "source": "PokéAPI",
             "resource": "location-area",
             "requested_location_area": normalized_area_name,
-            "extracted_at_utc": datetime.now(timezone.utc).isoformat(),
+            "extracted_at_utc": datetime.now(UTC).isoformat(),
         },
         "location_area": area_data,
         "location": location_data,
