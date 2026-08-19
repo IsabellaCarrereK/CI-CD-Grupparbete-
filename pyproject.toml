@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pokeapi-cicd-extractor"
+version = "1.0.0"
+description = "PokéAPI extraction stage for the DE25 CI/CD group project"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.32,<3.0",
+]
+
+[project.scripts]
+poke-extract = "pokemon_pipeline.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
+    "ruff>=0.12,<1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
