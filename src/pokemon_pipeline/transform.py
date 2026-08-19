@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-
 # Path to raw JSON file
 RAW_DATA_PATH = Path("data/raw/canalave-city-area.json")
 
