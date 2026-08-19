@@ -30,6 +30,20 @@ Owns extraction orchestration.
 
 It deliberately does not clean, normalize, aggregate, or rename the raw API fields. Those operations belong to the transformation stage.
 
+## `transform.py`
+
+Owns the transformation stage.
+
+It:
+
+- reads the raw extraction JSON from `data/raw/`
+- extracts region, location, and location-area
+- extracts each Pokémon and its type(s)
+- creates a simpler structured dataset
+- saves the transformed data to `data/processed/`
+
+The raw extraction data is kept unchanged. The processed output contains only the fields needed for the next stages of the pipeline
+
 ## `storage.py`
 
 Owns persistence only.

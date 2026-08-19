@@ -219,3 +219,6 @@ __marimo__/
 
 # Project-generated raw extraction data
 data/raw/*.json
+
+# Project-generated processed data
+data/processed/*.json
