@@ -21,3 +21,11 @@ Generated `.json` files in `data/raw/` are ignored by Git because they are repro
 `.gitkeep` exists only so Git retains the otherwise empty `raw/` folder.
 
 The transform-stage team member can read these files without changing the extractor itself.
+
+## `processed/`
+
+The transformation stage writes cleaned and simplified data here:
+
+```text
+data/processed/<location-area>.json
+```
