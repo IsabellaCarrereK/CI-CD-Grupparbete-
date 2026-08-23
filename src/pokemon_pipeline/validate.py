@@ -33,7 +33,10 @@ def validate_transformed_records(records):
             raise ValueError(f"Invalid region in record {i}")
         if not isinstance(record["location"], str) or not record["location"].strip():
             raise ValueError(f"Invalid location in record {i}")
-        if not isinstance(record["location_area"], str) or not record["location_area"].strip():
+        if (
+            not isinstance(record["location_area"], str)
+            or not record["location_area"].strip()
+        ):
             raise ValueError(f"Invalid location_area in record {i}")
 
         # A Pokémon should have a valid name and each Pokémon should only appear once.
