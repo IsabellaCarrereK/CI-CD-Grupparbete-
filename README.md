@@ -62,3 +62,16 @@ Run the automated checks:
 pytest
 ruff check .
 ```
+## Environment setup
+
+Copy `.env.example` to `.env` before running the pipeline locally:
+
+```
+cp .env.example .env
+```
+
+No API key is required for PokéAPI, but keep `.env` out of version control (already handled by `.gitignore`).
+
+## Branch protection
+
+The `main` branch is protected: changes must go through a reviewed pull request with a passing CI check before merging.
