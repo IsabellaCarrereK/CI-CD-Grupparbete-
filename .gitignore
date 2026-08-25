@@ -222,3 +222,4 @@ data/raw/*.json
 
 # Project-generated processed data
 data/processed/*.json
+src/pokemon_pipeline/data/
