@@ -223,3 +223,4 @@ data/raw/*.json
 # Project-generated processed data
 data/processed/*.json
 data/aggregated/*.json
+
