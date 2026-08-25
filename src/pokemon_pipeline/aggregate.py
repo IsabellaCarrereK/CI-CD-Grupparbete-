@@ -2,7 +2,6 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-
 PROCESSED_DATA_DIR = Path("data/processed")
 AGGREGATED_DATA_PATH = Path("data/aggregated/location_summary.json")
 
