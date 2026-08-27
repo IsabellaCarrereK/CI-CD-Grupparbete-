@@ -149,10 +149,19 @@ def render_page(entries: list[dict]) -> str:
 <body>
   <header class="hero">
     <h1>PokeAPI Pipeline Report</h1>
-    <p>DE25 CI/CD Grupparbete &mdash; extract &rarr; transform &rarr; validate &rarr; aggregate</p>
+    <p>
+      DE25 CI/CD Grupparbete &mdash; extract &rarr; transform &rarr;
+      validate &rarr; aggregate
+    </p>
     <div class="stats">
-      <div class="stat"><strong>{total_locations}</strong><span>locations</span></div>
-      <div class="stat"><strong>{total_pokemon}</strong><span>Pok&eacute;mon (with duplicates across locations)</span></div>
+      <div class="stat">
+        <strong>{total_locations}</strong>
+        <span>locations</span>
+      </div>
+      <div class="stat">
+        <strong>{total_pokemon}</strong>
+        <span>Pok&eacute;mon (with duplicates)</span>
+      </div>
     </div>
   </header>
   <main>
