@@ -42,17 +42,34 @@ class FakeClient:
                 "name": "canalave-city",
                 "region": {"name": "sinnoh"},
             },
-            "https://example.test/pokemon/72/": {
-                "name": "tentacool",
-                "types": [
-                    {"type": {"name": "water"}},
-                    {"type": {"name": "poison"}},
-                ],
-            },
+"https://example.test/pokemon/72/": {
+    "name": "tentacool",
+    "types": [
+        {"type": {"name": "water"}},
+        {"type": {"name": "poison"}},
+    ],
+    "abilities": [
+        {
+            "ability": {
+                "name": "clear-body",
+                "url": "https://example.test/ability/29/",
+            }
+        }
+    ],
+},
             "https://example.test/pokemon/129/": {
                 "name": "magikarp",
                 "types": [{"type": {"name": "water"}}],
             },
+            "https://example.test/ability/29/": {
+                "name": "clear-body",
+                "effect_entries": [
+            {
+                "effect": "Prevents stat reduction.",
+                "language": {"name": "en"},
+            }
+        ],
+    },
         }
         self.requested_urls: list[str] = []
 
@@ -82,3 +99,7 @@ def test_extract_location_area_collects_required_raw_resources() -> None:
 
     assert client.requested_urls.count("https://example.test/pokemon/72/") == 1
     assert client.requested_urls.count("https://example.test/pokemon/129/") == 1
+    assert "clear-body" in result["abilities"]
+    assert result["abilities"]["clear-body"]["name"] == "clear-body"
+    assert client.requested_urls.count("https://example.test/ability/29/") == 1
+    

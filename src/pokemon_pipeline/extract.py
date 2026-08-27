@@ -49,6 +49,33 @@ def _pokemon_references(area_data: dict[str, Any]) -> dict[str, str]:
 
     return references
 
+def _ability_references(
+    pokemon_resources: dict[str, dict[str, Any]],
+) -> dict[str, str]:
+    """Return unique ability names and URLs from Pokémon resources."""
+    references: dict[str, str] = {}
+
+    for pokemon_data in pokemon_resources.values():
+        abilities = pokemon_data.get("abilities", [])
+
+        if not isinstance(abilities, list):
+            continue
+
+        for ability_entry in abilities:
+            if not isinstance(ability_entry, dict):
+                continue
+
+            ability = ability_entry.get("ability")
+            if not isinstance(ability, dict):
+                continue
+
+            name = ability.get("name")
+            url = ability.get("url")
+
+            if isinstance(name, str) and name and isinstance(url, str) and url:
+                references[name] = url
+
+    return references
 
 def extract_location_area(
     client: PokeAPIClient,
@@ -72,6 +99,13 @@ def extract_location_area(
             name: client.get_json(url)
             for name, url in sorted(_pokemon_references(area_data).items())
         }
+
+        ability_resources = {
+            name: client.get_json(url)
+            for name, url in sorted(
+                _ability_references(pokemon_resources).items()
+            )  
+        }
     except PokeAPIError as exc:
         raise ExtractionError(str(exc)) from exc
 
@@ -85,4 +119,5 @@ def extract_location_area(
         "location_area": area_data,
         "location": location_data,
         "pokemon": pokemon_resources,
+        "abilities": ability_resources,
     }

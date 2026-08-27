@@ -26,7 +26,9 @@ Owns extraction orchestration.
 2. follows its `location.url`
 3. reads `pokemon_encounters`
 4. follows each unique Pokémon URL
-5. combines those raw resources into one extraction payload
+5. collects unique ability references from the Pokémon resources
+6. follows each unique ability URL
+7. combines those raw resources into one extraction payload
 
 It deliberately does not clean, normalize, aggregate, or rename the raw API fields. Those operations belong to the transformation stage.
 
