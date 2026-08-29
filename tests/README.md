@@ -37,6 +37,15 @@ Checks JSON persistence:
 - missing parent directories are created
 - the saved JSON can be read back correctly
 
+### `test_report.py`
+
+Checks report generation:
+
+- aggregated JSON is loaded from disk
+- invalid input shape is rejected
+- the HTML report contains summary values and escaped data
+- `site/index.html` is written by the main report function
+
 ## Run
 
 From the repository root:

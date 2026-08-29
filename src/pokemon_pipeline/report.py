@@ -20,9 +20,12 @@ SITE_DIR = Path("site")
 SITE_OUTPUT_PATH = SITE_DIR / "index.html"
 
 
-def load_aggregated_data(path: Path = AGGREGATED_DATA_PATH) -> list[dict]:
+def load_aggregated_data(path: Path | None = None) -> list[dict]:
     """Load the aggregated location summary produced by the pipeline."""
-    if not path.exists():
+    if path is None:
+        path = AGGREGATED_DATA_PATH
+
+    if not path.is_file():
         raise FileNotFoundError(
             f"Aggregated data not found at {path}. Run the aggregate stage first."
         )
@@ -104,6 +107,13 @@ def render_page(entries: list[dict]) -> str:
   }}
   header.hero h1 {{ margin: 0 0 .25rem; font-size: 1.75rem; }}
   header.hero p {{ margin: .25rem 0; color: var(--muted); }}
+  .stats {{
+    display: flex; gap: 1.5rem; justify-content: center;
+    margin-top: 1rem; flex-wrap: wrap;
+  }}
+  .stat {{ text-align: center; }}
+  .stat strong {{ display: block; font-size: 1.5rem; }}
+  .stat span {{ color: var(--muted); font-size: .85rem; }}
   main {{
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -112,7 +122,26 @@ def render_page(entries: list[dict]) -> str:
     margin: 0 auto;
     padding: 0 1.5rem 3rem;
   }}
+  .card {{
+    background: var(--card-bg);
+    border-radius: .75rem;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }}
+  .card header {{
+    display: flex; justify-content: space-between; align-items: baseline;
+  }}
   .card h2 {{ margin: 0; font-size: 1.1rem; text-transform: capitalize; }}
+  .region {{ color: var(--muted); font-size: .8rem; text-transform: capitalize; }}
+  .count {{ margin: .35rem 0 .6rem; color: var(--accent); font-weight: 600; }}
+  .chips {{ display: flex; flex-wrap: wrap; gap: .35rem; }}
+  .chip {{
+    background: var(--chip-bg);
+    border-radius: 999px;
+    padding: .15rem .6rem;
+    font-size: .8rem;
+    text-transform: capitalize;
+  }}
   footer {{
     text-align: center; color: var(--muted); font-size: .8rem;
     padding-bottom: 2rem;
@@ -124,8 +153,18 @@ def render_page(entries: list[dict]) -> str:
     <h1>PokeAPI Pipeline Report</h1>
     <p>
       DE25 CI/CD Grupparbete &mdash; extract &rarr; transform &rarr;
-      validate &rarr; aggregate &rarr; report
+      validate &rarr; aggregate
     </p>
+    <div class="stats">
+      <div class="stat">
+        <strong>{total_locations}</strong>
+        <span>locations</span>
+      </div>
+      <div class="stat">
+        <strong>{total_pokemon}</strong>
+        <span>Pok&eacute;mon (with duplicates)</span>
+      </div>
+    </div>
   </header>
   <main>
     {cards if entries else '<p style="text-align:center">No aggregated data found.</p>'}
