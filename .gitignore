@@ -226,3 +226,6 @@ data/aggregated/*.json
 
 # Project-generated data
 data/
+
+# Project-generated report
+src/site
