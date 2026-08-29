@@ -41,6 +41,9 @@ jobs:
           python -m pokemon_pipeline.validate canalave-city-area
           python -m pokemon_pipeline.aggregate
 
+      - name: Generate report
+        run: python -m pokemon_pipeline.report
+
       - name: Generate static report
         run: python scripts/generate_report.py
 
