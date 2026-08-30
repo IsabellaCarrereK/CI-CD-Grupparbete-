@@ -26,12 +26,14 @@ def load_processed_data(
 
 
 def aggregate_by_location(records: list[dict]) -> list[dict]:
-    """Group unique Pokemon names by location."""
+    """Group unique Pokémon and abilities by location."""
     locations = defaultdict(
         lambda: {
             "region": None,
             "location_areas": set(),
             "pokemons": set(),
+            "abilities": set(),
+            "pokemon_abilities": defaultdict(set),
         }
     )
 
@@ -42,18 +44,43 @@ def aggregate_by_location(records: list[dict]) -> list[dict]:
         if not location or not pokemon:
             continue
 
-        locations[location]["region"] = record.get("region")
+        location_data = locations[location]
+        location_data["region"] = record.get("region")
+        location_data["pokemons"].add(pokemon)
 
         location_area = record.get("location_area")
         if location_area:
-            locations[location]["location_areas"].add(location_area)
+            location_data["location_areas"].add(location_area)
 
-        locations[location]["pokemons"].add(pokemon)
+        abilities = record.get("abilities", [])
+
+        if isinstance(abilities, list):
+            for ability in abilities:
+                if isinstance(ability, str) and ability.strip():
+                    normalized_ability = ability.strip().lower()
+
+                    location_data["abilities"].add(
+                        normalized_ability
+                    )
+                    location_data["pokemon_abilities"][pokemon].add(
+                        normalized_ability
+                    )
 
     result = []
 
     for location, location_data in locations.items():
         pokemons = sorted(location_data["pokemons"])
+        abilities = sorted(location_data["abilities"])
+
+        pokemon_abilities = {
+            pokemon: sorted(
+                location_data["pokemon_abilities"].get(
+                    pokemon,
+                    set(),
+                )
+            )
+            for pokemon in pokemons
+        }
 
         result.append(
             {
@@ -64,12 +91,18 @@ def aggregate_by_location(records: list[dict]) -> list[dict]:
                 ),
                 "pokemon_count": len(pokemons),
                 "pokemons": pokemons,
+                "ability_count": len(abilities),
+                "abilities": abilities,
+                "pokemon_abilities": pokemon_abilities,
             }
         )
 
     return sorted(
         result,
-        key=lambda item: (-item["pokemon_count"], item["location"]),
+        key=lambda item: (
+            -item["pokemon_count"],
+            item["location"],
+        ),
     )
 
 
