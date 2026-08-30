@@ -66,6 +66,7 @@ def test_invalid_records_are_skipped():
     assert result == []
 
 
+
 def test_load_processed_data(tmp_path):
     first_file = tmp_path / "first.json"
     second_file = tmp_path / "second.json"
@@ -99,3 +100,61 @@ def test_load_processed_data(tmp_path):
     assert len(result) == 2
     assert result[0]["pokemon"] == "pikachu"
     assert result[1]["pokemon"] == "zubat"
+
+def test_aggregate_includes_unique_abilities():
+    records = [
+        {
+            "region": "sinnoh",
+            "location": "canalave-city",
+            "location_area": "canalave-city-area",
+            "pokemon": "gyarados",
+            "types": ["water", "flying"],
+            "abilities": ["intimidate", "moxie"],
+        },
+        {
+            "region": "sinnoh",
+            "location": "canalave-city",
+            "location_area": "canalave-city-area",
+            "pokemon": "magikarp",
+            "types": ["water"],
+            "abilities": ["swift-swim"],
+        },
+        {
+            "region": "sinnoh",
+            "location": "canalave-city",
+            "location_area": "canalave-city-area",
+            "pokemon": "gyarados",
+            "types": ["water", "flying"],
+            "abilities": ["INTIMIDATE"],
+        },
+    ]
+
+    result = aggregate_by_location(records)
+
+    assert len(result) == 1
+
+    location = result[0]
+
+    assert location["location"] == "canalave-city"
+    assert location["pokemon_count"] == 2
+    assert location["pokemons"] == [
+        "gyarados",
+        "magikarp",
+    ]
+
+    assert location["ability_count"] == 3
+    assert location["abilities"] == [
+        "intimidate",
+        "moxie",
+        "swift-swim",
+    ]
+
+    assert location["pokemon_abilities"] == {
+        "gyarados": [
+            "intimidate",
+            "moxie",
+        ],
+        "magikarp": [
+            "swift-swim",
+        ],
+    }
