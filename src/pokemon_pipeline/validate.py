@@ -53,7 +53,6 @@ def validate_transformed_records(records):
         if len(record["types"]) == 0:
             raise ValueError(f"Empty 'types' in record {i}")
 
-        # Every type should be a non-empty string and should not be repeated.
         seen_types = set()
         for type_name in record["types"]:
             if not isinstance(type_name, str) or not type_name.strip():
@@ -62,6 +61,24 @@ def validate_transformed_records(records):
             if normalized in seen_types:
                 raise ValueError(f"Duplicate type '{type_name}' in record {i}")
             seen_types.add(normalized)
+
+        if "abilities" in record:
+            abilities = record["abilities"]
+            if not isinstance(abilities, list):
+                raise ValueError(f"Invalid 'abilities' in record {i}")
+            if len(abilities) == 0:
+                raise ValueError(f"Empty 'abilities' in record {i}")
+
+            seen_abilities = set()
+            for ability_name in abilities:
+                if not isinstance(ability_name, str) or not ability_name.strip():
+                    raise ValueError(f"Invalid ability value in record {i}")
+                normalized = ability_name.lower()
+                if normalized in seen_abilities:
+                    raise ValueError(
+                        f"Duplicate ability '{ability_name}' in record {i}"
+                    )
+                seen_abilities.add(normalized)
 
     return records
 
