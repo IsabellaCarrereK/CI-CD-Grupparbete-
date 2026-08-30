@@ -15,9 +15,13 @@ from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 
+import requests
+
 AGGREGATED_DATA_PATH = Path("data/aggregated/location_summary.json")
 SITE_DIR = Path("site")
 SITE_OUTPUT_PATH = SITE_DIR / "index.html"
+POKEAPI_POKEMON_URL = "https://pokeapi.co/api/v2/pokemon/{name}"
+REQUEST_TIMEOUT_SECONDS = 10
 
 
 def load_aggregated_data(path: Path = AGGREGATED_DATA_PATH) -> list[dict]:
@@ -37,15 +41,75 @@ def load_aggregated_data(path: Path = AGGREGATED_DATA_PATH) -> list[dict]:
     return data
 
 
-def render_location_card(entry: dict) -> str:
+def collect_unique_pokemon_names(entries: list[dict]) -> list[str]:
+    """Return every distinct Pokemon name referenced across all locations."""
+    names: set[str] = set()
+
+    for entry in entries:
+        names.update(entry.get("pokemons", []))
+
+    return sorted(names)
+
+
+def fetch_sprite_url(name: str, session: requests.Session) -> str | None:
+    """Best-effort lookup of a Pokemon's sprite image from PokeAPI.
+
+    Returns None on any failure so a flaky request never breaks the report.
+    """
+    url = POKEAPI_POKEMON_URL.format(name=name)
+
+    try:
+        response = session.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
+        response.raise_for_status()
+        sprites = response.json().get("sprites", {})
+        return sprites.get("front_default")
+    except (requests.RequestException, ValueError):
+        return None
+
+
+def build_sprite_map(names: list[str]) -> dict[str, str | None]:
+    """Fetch sprite URLs for a list of Pokemon names, one request each."""
+    sprite_map: dict[str, str | None] = {}
+
+    with requests.Session() as session:
+        for name in names:
+            sprite_map[name] = fetch_sprite_url(name, session)
+
+    return sprite_map
+
+
+def render_pokemon_tile(name: str, sprite_url: str | None) -> str:
+    """Render one Pokemon as a small tile with its sprite, when available."""
+    safe_name = escape(str(name))
+
+    if sprite_url:
+        safe_sprite_url = escape(sprite_url)
+        image = (
+            f'<img src="{safe_sprite_url}" alt="{safe_name}" loading="lazy" '
+            'onerror="this.replaceWith(Object.assign('
+            'document.createElement(\'span\'),{{className:\'no-sprite\','
+            'textContent:\'?\'}}))">'
+        )
+    else:
+        image = '<span class="no-sprite">?</span>'
+
+    return f"""
+      <figure class="pokemon-tile">
+        {image}
+        <figcaption>{safe_name}</figcaption>
+      </figure>
+    """
+
+
+def render_location_card(entry: dict, sprite_map: dict[str, str | None]) -> str:
     """Render one location as an HTML card."""
     region = escape(str(entry.get("region", "unknown")))
     location = escape(str(entry.get("location", "unknown")))
     pokemon_count = int(entry.get("pokemon_count", 0))
     pokemons = entry.get("pokemons", [])
 
-    chips = "".join(
-        f'<span class="chip">{escape(str(name))}</span>' for name in pokemons
+    tiles = "".join(
+        render_pokemon_tile(name, sprite_map.get(name)) for name in pokemons
     )
 
     return f"""
@@ -55,17 +119,19 @@ def render_location_card(entry: dict) -> str:
         <span class="region">{region}</span>
       </header>
       <p class="count">{pokemon_count} Pok&eacute;mon</p>
-      <div class="chips">{chips}</div>
+      <div class="pokemon-grid">{tiles}</div>
     </article>
     """
 
 
-def render_page(entries: list[dict]) -> str:
+def render_page(entries: list[dict], sprite_map: dict[str, str | None]) -> str:
     """Render the full HTML page for all aggregated locations."""
     generated_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     total_locations = len(entries)
     total_pokemon = sum(int(e.get("pokemon_count", 0)) for e in entries)
-    cards = "".join(render_location_card(entry) for entry in entries)
+    cards = "".join(
+        render_location_card(entry, sprite_map) for entry in entries
+    )
 
     return f"""<!doctype html>
 <html lang="en">
@@ -132,13 +198,38 @@ def render_page(entries: list[dict]) -> str:
   .card h2 {{ margin: 0; font-size: 1.1rem; text-transform: capitalize; }}
   .region {{ color: var(--muted); font-size: .8rem; text-transform: capitalize; }}
   .count {{ margin: .35rem 0 .6rem; color: var(--accent); font-weight: 600; }}
-  .chips {{ display: flex; flex-wrap: wrap; gap: .35rem; }}
-  .chip {{
+  .pokemon-grid {{
+    display: flex; flex-wrap: wrap; gap: .5rem;
+  }}
+  .pokemon-tile {{
+    margin: 0;
+    width: 4.5rem;
+    text-align: center;
     background: var(--chip-bg);
-    border-radius: 999px;
-    padding: .15rem .6rem;
-    font-size: .8rem;
+    border-radius: .6rem;
+    padding: .35rem .25rem .5rem;
+  }}
+  .pokemon-tile img {{
+    width: 40px;
+    height: 40px;
+    display: block;
+    margin: 0 auto;
+    image-rendering: pixelated;
+  }}
+  .pokemon-tile .no-sprite {{
+    display: block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    margin: 0 auto;
+    color: var(--muted);
+    font-weight: 600;
+  }}
+  .pokemon-tile figcaption {{
+    font-size: .7rem;
     text-transform: capitalize;
+    margin-top: .2rem;
+    overflow-wrap: break-word;
   }}
   footer {{
     text-align: center; color: var(--muted); font-size: .8rem;
@@ -175,12 +266,18 @@ def render_page(entries: list[dict]) -> str:
 
 def main() -> None:
     entries = load_aggregated_data()
-    html = render_page(entries)
+
+    unique_names = collect_unique_pokemon_names(entries)
+    sprite_map = build_sprite_map(unique_names)
+
+    html = render_page(entries, sprite_map)
 
     SITE_DIR.mkdir(parents=True, exist_ok=True)
     SITE_OUTPUT_PATH.write_text(html, encoding="utf-8")
 
+    found_sprites = sum(1 for url in sprite_map.values() if url)
     print(f"Report written to {SITE_OUTPUT_PATH} ({len(entries)} locations).")
+    print(f"Sprites fetched: {found_sprites}/{len(unique_names)}")
 
 
 if __name__ == "__main__":
