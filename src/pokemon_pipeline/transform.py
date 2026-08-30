@@ -35,12 +35,21 @@ for pokemon_name, pokemon_info in pokemon_data.items():
         for type_info in pokemon_info["types"]
     ]
 
+    abilities = [
+        ability_entry["ability"]["name"]
+        for ability_entry in pokemon_info.get("abilities", [])
+        if isinstance(ability_entry, dict)
+        and isinstance(ability_entry.get("ability"), dict)
+        and isinstance(ability_entry["ability"].get("name"), str)
+    ]
+
     pokemon_record = {
         "region": region,
         "location": location,
         "location_area": location_area,
         "pokemon": pokemon_name,
         "types": types,
+        "abilities": abilities,
     }
 
     transformed_data.append(pokemon_record)
