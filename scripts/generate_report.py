@@ -86,9 +86,9 @@ def render_pokemon_tile(name: str, sprite_url: str | None) -> str:
         safe_sprite_url = escape(sprite_url)
         image = (
             f'<img src="{safe_sprite_url}" alt="{safe_name}" loading="lazy" '
-            'onerror="this.replaceWith(Object.assign('
-            'document.createElement(\'span\'),{{className:\'no-sprite\','
-            'textContent:\'?\'}}))">'
+            "onerror=\"this.replaceWith(Object.assign("
+            "document.createElement('span'),{className:'no-sprite',"
+            "textContent:'?'}))\">"
         )
     else:
         image = '<span class="no-sprite">?</span>'
