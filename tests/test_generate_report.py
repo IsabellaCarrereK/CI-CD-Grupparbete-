@@ -1,4 +1,4 @@
-"""Tests for the demo-report generator's sprite fallback behaviour.
+"""Tests for the demo-report generator's sprite/type/ability behaviour.
 
 These live in tests/ alongside the rest of the pipeline's tests. Since
 generate_report.py lives in scripts/ (not src/), we add that folder to
@@ -45,19 +45,48 @@ class _NotFoundSession:
         return _NotFoundResponse()
 
 
-def test_fetch_sprite_url_returns_none_on_connection_error():
-    """A network failure must not raise; it should degrade to None."""
-    assert gr.fetch_sprite_url("gyarados", _RaisingSession()) is None
+class _OkResponse:
+    """A fake successful PokeAPI response with a sprite and two types."""
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return {
+            "sprites": {"front_default": "https://example.com/gyarados.png"},
+            "types": [
+                {"type": {"name": "water"}},
+                {"type": {"name": "flying"}},
+            ],
+        }
 
 
-def test_fetch_sprite_url_returns_none_on_http_error():
-    """An unknown Pokemon name (404) should also degrade to None."""
-    assert gr.fetch_sprite_url("missingno", _NotFoundSession()) is None
+class _OkSession:
+    def get(self, url, timeout):  # noqa: ARG002
+        return _OkResponse()
+
+
+def test_fetch_pokemon_info_returns_empty_on_connection_error():
+    """A network failure must not raise; it should degrade to (None, [])."""
+    assert gr.fetch_pokemon_info("gyarados", _RaisingSession()) == (None, [])
+
+
+def test_fetch_pokemon_info_returns_empty_on_http_error():
+    """An unknown Pokemon name (404) should also degrade to (None, [])."""
+    assert gr.fetch_pokemon_info("missingno", _NotFoundSession()) == (None, [])
+
+
+def test_fetch_pokemon_info_returns_sprite_and_all_types():
+    """A successful lookup returns the sprite URL and every type, in order."""
+    sprite_url, types = gr.fetch_pokemon_info("gyarados", _OkSession())
+
+    assert sprite_url == "https://example.com/gyarados.png"
+    assert types == ["water", "flying"]
 
 
 def test_render_pokemon_tile_falls_back_without_sprite():
     """No sprite URL -> a text placeholder, no broken <img> tag."""
-    html = gr.render_pokemon_tile("missingno", None)
+    html = gr.render_pokemon_tile("missingno", None, [])
 
     assert "<img" not in html
     assert 'class="no-sprite"' in html
@@ -66,22 +95,42 @@ def test_render_pokemon_tile_falls_back_without_sprite():
 
 def test_render_pokemon_tile_uses_sprite_when_available():
     """A sprite URL renders an <img> with the correct escaped src."""
-    html = gr.render_pokemon_tile("gyarados", "https://example.com/gyarados.png")
+    html = gr.render_pokemon_tile("gyarados", "https://example.com/gyarados.png", [])
 
     assert '<img src="https://example.com/gyarados.png"' in html
     assert "{{" not in html
     assert "}}" not in html
 
 
-def test_build_sprite_map_handles_total_failure_gracefully():
-    """If every request fails, we still get a complete map of None values."""
+def test_render_pokemon_tile_shows_every_type_as_a_badge():
+    """All of a Pokemon's types render as badges, not just the first."""
+    html = gr.render_pokemon_tile("gyarados", None, ["water", "flying"])
+
+    assert '<span class="type-badge" style="background:#6890F0">water</span>' in html
+    assert (
+        '<span class="type-badge" style="background:#A890F0">flying</span>' in html
+    )
+
+
+def test_render_pokemon_tile_puts_abilities_in_hover_tooltip():
+    """Abilities show up as a data-tooltip attribute, not the native title."""
+    html = gr.render_pokemon_tile(
+        "gyarados", None, ["water"], ["intimidate", "moxie"]
+    )
+
+    assert 'data-tooltip="Abilities: intimidate, moxie"' in html
+    assert "title=\"Abilities" not in html
+
+
+def test_build_pokemon_info_map_handles_total_failure_gracefully():
+    """If every request fails, we still get a complete map of (None, [])."""
     names = ["gyarados", "magikarp"]
 
     original_session = gr.requests.Session
     gr.requests.Session = _RaisingSession  # type: ignore[assignment]
     try:
-        sprite_map = gr.build_sprite_map(names)
+        info_map = gr.build_pokemon_info_map(names)
     finally:
         gr.requests.Session = original_session
 
-    assert sprite_map == {"gyarados": None, "magikarp": None}
+    assert info_map == {"gyarados": (None, []), "magikarp": (None, [])}
