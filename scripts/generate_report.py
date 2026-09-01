@@ -78,9 +78,17 @@ def build_sprite_map(names: list[str]) -> dict[str, str | None]:
     return sprite_map
 
 
-def render_pokemon_tile(name: str, sprite_url: str | None) -> str:
-    """Render one Pokemon as a small tile with its sprite, when available."""
+def render_pokemon_tile(
+    name: str, sprite_url: str | None, abilities: list[str] | None = None
+) -> str:
+    """Render one Pokemon as a small tile with its sprite, when available.
+
+    When ability data is available it becomes a hover tooltip on the tile,
+    so the grid stays compact while the detail is still one hover away.
+    """
     safe_name = escape(str(name))
+    abilities = abilities or []
+    tooltip = escape(", ".join(abilities)) if abilities else "No ability data"
 
     if sprite_url:
         safe_sprite_url = escape(sprite_url)
@@ -94,10 +102,25 @@ def render_pokemon_tile(name: str, sprite_url: str | None) -> str:
         image = '<span class="no-sprite">?</span>'
 
     return f"""
-      <figure class="pokemon-tile">
+      <figure class="pokemon-tile" title="{tooltip}">
         {image}
         <figcaption>{safe_name}</figcaption>
       </figure>
+    """
+
+
+def render_abilities_summary(abilities: list[str]) -> str:
+    """Render the distinct abilities seen at a location as small pills."""
+    if not abilities:
+        return ""
+
+    pills = "".join(
+        f'<span class="ability-pill">{escape(str(a))}</span>' for a in abilities
+    )
+
+    return f"""
+      <p class="abilities-label">Abilities in this area</p>
+      <div class="ability-list">{pills}</div>
     """
 
 
@@ -107,10 +130,16 @@ def render_location_card(entry: dict, sprite_map: dict[str, str | None]) -> str:
     location = escape(str(entry.get("location", "unknown")))
     pokemon_count = int(entry.get("pokemon_count", 0))
     pokemons = entry.get("pokemons", [])
+    pokemon_abilities = entry.get("pokemon_abilities", {})
+    abilities = entry.get("abilities", [])
 
     tiles = "".join(
-        render_pokemon_tile(name, sprite_map.get(name)) for name in pokemons
+        render_pokemon_tile(
+            name, sprite_map.get(name), pokemon_abilities.get(name)
+        )
+        for name in pokemons
     )
+    abilities_summary = render_abilities_summary(abilities)
 
     return f"""
     <article class="card">
@@ -120,6 +149,7 @@ def render_location_card(entry: dict, sprite_map: dict[str, str | None]) -> str:
       </header>
       <p class="count">{pokemon_count} Pok&eacute;mon</p>
       <div class="pokemon-grid">{tiles}</div>
+      {abilities_summary}
     </article>
     """
 
@@ -129,6 +159,7 @@ def render_page(entries: list[dict], sprite_map: dict[str, str | None]) -> str:
     generated_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     total_locations = len(entries)
     total_pokemon = sum(int(e.get("pokemon_count", 0)) for e in entries)
+    total_abilities = sum(int(e.get("ability_count", 0)) for e in entries)
     cards = "".join(
         render_location_card(entry, sprite_map) for entry in entries
     )
@@ -231,6 +262,23 @@ def render_page(entries: list[dict], sprite_map: dict[str, str | None]) -> str:
     margin-top: .2rem;
     overflow-wrap: break-word;
   }}
+  .abilities-label {{
+    margin: .9rem 0 .3rem;
+    font-size: .75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }}
+  .ability-list {{ display: flex; flex-wrap: wrap; gap: .35rem; }}
+  .ability-pill {{
+    background: transparent;
+    border: 1px solid var(--chip-bg);
+    color: var(--accent);
+    border-radius: 999px;
+    padding: .1rem .55rem;
+    font-size: .75rem;
+    text-transform: capitalize;
+  }}
   footer {{
     text-align: center; color: var(--muted); font-size: .8rem;
     padding-bottom: 2rem;
@@ -252,6 +300,10 @@ def render_page(entries: list[dict], sprite_map: dict[str, str | None]) -> str:
       <div class="stat">
         <strong>{total_pokemon}</strong>
         <span>Pok&eacute;mon (with duplicates)</span>
+      </div>
+      <div class="stat">
+        <strong>{total_abilities}</strong>
+        <span>abilities (with duplicates)</span>
       </div>
     </div>
   </header>
