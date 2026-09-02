@@ -1,2 +1,2 @@
 CI/CD Grupparbete
-Status: Projektet är nästan klart!!!
+Status: Projektet är redo för presentation!!!
