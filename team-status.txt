@@ -1,2 +1,2 @@
 CI/CD Grupparbete
-Status: Projektet är klart för presentation efter multi-location-uppdateringen.
+Status: Projektet är klart för presentation efter multi-location-uppdateringen och slutlig kontroll.
