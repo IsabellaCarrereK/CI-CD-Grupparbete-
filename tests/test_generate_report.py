@@ -134,3 +134,70 @@ def test_build_pokemon_info_map_handles_total_failure_gracefully():
         gr.requests.Session = original_session
 
     assert info_map == {"gyarados": (None, []), "magikarp": (None, [])}
+
+
+def test_render_pokemon_tile_exposes_search_metadata():
+    """Pokemon tiles include searchable Pokemon and ability metadata."""
+    html = gr.render_pokemon_tile(
+        "Gyarados",
+        None,
+        ["water", "flying"],
+        ["Intimidate", "Moxie"],
+    )
+
+    assert 'data-pokemon="gyarados"' in html
+    assert 'data-abilities="intimidate moxie"' in html
+
+
+def test_render_location_card_exposes_search_metadata():
+    """Location cards include searchable region, location, and abilities."""
+    entry = {
+        "region": "Sinnoh",
+        "location": "Canalave-City",
+        "pokemon_count": 1,
+        "pokemons": ["gyarados"],
+        "pokemon_abilities": {
+            "gyarados": ["intimidate", "moxie"],
+        },
+        "abilities": ["intimidate", "moxie"],
+    }
+    info_map = {
+        "gyarados": (None, ["water", "flying"]),
+    }
+
+    html = gr.render_location_card(entry, info_map)
+
+    assert 'data-region="sinnoh"' in html
+    assert 'data-location="canalave-city"' in html
+    assert 'data-ability="intimidate"' in html
+    assert 'data-ability="moxie"' in html
+
+
+def test_render_page_contains_live_filter_controls():
+    """The generated report contains the live client-side filter UI."""
+    entry = {
+        "region": "Sinnoh",
+        "location": "Canalave-City",
+        "pokemon_count": 1,
+        "pokemons": ["gyarados"],
+        "pokemon_abilities": {
+            "gyarados": ["intimidate", "moxie"],
+        },
+        "ability_count": 2,
+        "abilities": ["intimidate", "moxie"],
+    }
+    info_map = {
+        "gyarados": (None, ["water", "flying"]),
+    }
+
+    html = gr.render_page([entry], info_map)
+
+    assert 'id="filter-pokemon"' in html
+    assert 'id="filter-location"' in html
+    assert 'id="filter-region"' in html
+    assert 'id="filter-ability"' in html
+    assert 'id="clear-filters"' in html
+    assert 'id="filter-summary"' in html
+    assert 'id="no-results"' in html
+    assert 'addEventListener("input", applyFilters)' in html
+    assert "visibleAbilities" in html
