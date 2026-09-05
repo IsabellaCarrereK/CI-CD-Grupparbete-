@@ -158,6 +158,13 @@ def render_pokemon_tile(
     safe_name = escape(str(name))
     types = types or []
     abilities = abilities or []
+
+    search_pokemon = escape(str(name).lower(), quote=True)
+    search_abilities = escape(
+        " ".join(str(ability).lower() for ability in abilities),
+        quote=True,
+    )
+
     tooltip_text = ", ".join(abilities) if abilities else "No ability data"
     safe_tooltip = escape(f"Abilities: {tooltip_text}")
     accent_color = TYPE_COLORS.get(
@@ -179,6 +186,8 @@ def render_pokemon_tile(
 
     return f"""
       <figure class="pokemon-tile" tabindex="0"
+              data-pokemon="{search_pokemon}"
+              data-abilities="{search_abilities}"
               data-tooltip="{safe_tooltip}"
               style="--type-color:{accent_color}">
         {image}
@@ -194,7 +203,12 @@ def render_abilities_summary(abilities: list[str]) -> str:
         return ""
 
     pills = "".join(
-        f'<span class="ability-pill">{escape(str(a))}</span>' for a in abilities
+        (
+            f'<span class="ability-pill" '
+            f'data-ability="{escape(str(a).lower(), quote=True)}">'
+            f'{escape(str(a))}</span>'
+        )
+        for a in abilities
     )
 
     return f"""
@@ -207,8 +221,14 @@ def render_location_card(
     entry: dict, info_map: dict[str, tuple[str | None, list[str]]]
 ) -> str:
     """Render one location as an HTML card."""
-    region = escape(str(entry.get("region", "unknown")))
-    location = escape(str(entry.get("location", "unknown")))
+    region_value = str(entry.get("region", "unknown"))
+    location_value = str(entry.get("location", "unknown"))
+
+    region = escape(region_value)
+    location = escape(location_value)
+
+    search_region = escape(region_value.lower(), quote=True)
+    search_location = escape(location_value.lower(), quote=True)
     pokemon_count = int(entry.get("pokemon_count", 0))
     pokemons = entry.get("pokemons", [])
     pokemon_abilities = entry.get("pokemon_abilities", {})
@@ -225,7 +245,9 @@ def render_location_card(
     abilities_summary = render_abilities_summary(abilities)
 
     return f"""
-    <article class="card">
+    <article class="card"
+             data-region="{search_region}"
+             data-location="{search_location}">
       <header>
         <h2>{location}</h2>
         <span class="region">{region}</span>
@@ -471,6 +493,69 @@ def render_page(
     transform: scale(1.08);
     background: var(--chip-bg);
   }}
+  .filters {{
+    max-width: 1100px;
+    margin: 0 auto 1.25rem;
+    padding: 1rem 1.5rem;
+  }}
+  .filter-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: .8rem;
+    align-items: end;
+  }}
+  .filter-field {{
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    font-size: .82rem;
+    font-weight: 600;
+  }}
+  .filter-field input {{
+    width: 100%;
+    border: 1px solid var(--muted);
+    border-radius: .5rem;
+    padding: .65rem .7rem;
+    font: inherit;
+    background: var(--card-bg);
+    color: var(--text);
+  }}
+  .filter-field input:focus {{
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+  }}
+  .filter-actions {{
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: .85rem;
+    flex-wrap: wrap;
+  }}
+  #clear-filters {{
+    border: 0;
+    border-radius: .5rem;
+    padding: .55rem .9rem;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+    background: var(--chip-bg);
+    color: var(--text);
+  }}
+  #filter-summary {{
+    margin: 0;
+    color: var(--muted);
+    font-size: .9rem;
+  }}
+  .no-results {{
+    max-width: 1100px;
+    margin: 0 auto 2rem;
+    padding: 1rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+  }}
+  [hidden] {{
+    display: none !important;
+  }}
   footer {{
     text-align: center; color: var(--muted); font-size: .8rem;
     padding-bottom: 2rem;
@@ -500,9 +585,176 @@ def render_page(
       </div>
     </div>
   </header>
+
+  <section class="filters" aria-label="Report filters">
+    <div class="filter-grid">
+      <label class="filter-field">
+        Pokémon
+        <input id="filter-pokemon"
+               type="search"
+               placeholder="e.g. gyarados"
+               autocomplete="off">
+      </label>
+
+      <label class="filter-field">
+        Location
+        <input id="filter-location"
+               type="search"
+               placeholder="e.g. eterna"
+               autocomplete="off">
+      </label>
+
+      <label class="filter-field">
+        Region
+        <input id="filter-region"
+               type="search"
+               placeholder="e.g. sinnoh"
+               autocomplete="off">
+      </label>
+
+      <label class="filter-field">
+        Ability
+        <input id="filter-ability"
+               type="search"
+               placeholder="e.g. intimidate"
+               autocomplete="off">
+      </label>
+    </div>
+
+    <div class="filter-actions">
+      <button id="clear-filters" type="button">Clear filters</button>
+      <p id="filter-summary" aria-live="polite"></p>
+    </div>
+  </section>
+
   <main>
     {cards if entries else '<p style="text-align:center">No aggregated data found.</p>'}
   </main>
+
+  <p id="no-results" class="no-results" hidden>
+    No matching Pokémon found.
+  </p>
+
+  <script>
+    (() => {{
+      const pokemonInput = document.getElementById("filter-pokemon");
+      const locationInput = document.getElementById("filter-location");
+      const regionInput = document.getElementById("filter-region");
+      const abilityInput = document.getElementById("filter-ability");
+      const clearButton = document.getElementById("clear-filters");
+      const summary = document.getElementById("filter-summary");
+      const noResults = document.getElementById("no-results");
+      const cards = Array.from(document.querySelectorAll(".card"));
+
+      const normalize = (value) => value.trim().toLowerCase();
+
+      function applyFilters() {{
+        const pokemonFilter = normalize(pokemonInput.value);
+        const locationFilter = normalize(locationInput.value);
+        const regionFilter = normalize(regionInput.value);
+        const abilityFilter = normalize(abilityInput.value);
+
+        let visibleLocations = 0;
+        let visiblePokemon = 0;
+
+        cards.forEach((card) => {{
+          const locationMatches =
+            card.dataset.location.includes(locationFilter);
+          const regionMatches =
+            card.dataset.region.includes(regionFilter);
+
+          const cardMatches = locationMatches && regionMatches;
+          let visibleInCard = 0;
+
+          card.querySelectorAll(".pokemon-tile").forEach((tile) => {{
+            const pokemonMatches =
+              tile.dataset.pokemon.includes(pokemonFilter);
+            const abilityMatches =
+              !abilityFilter ||
+              tile.dataset.abilities
+                .split(" ")
+                .some((ability) => ability.includes(abilityFilter));
+
+            const visible =
+              cardMatches && pokemonMatches && abilityMatches;
+
+            tile.hidden = !visible;
+
+            if (visible) {{
+              visibleInCard += 1;
+            }}
+          }});
+
+          card.hidden = visibleInCard === 0;
+
+          const visibleAbilities = new Set();
+
+          card.querySelectorAll(".pokemon-tile:not([hidden])").forEach((tile) => {{
+            tile.dataset.abilities
+              .split(" ")
+              .filter(Boolean)
+              .forEach((ability) => visibleAbilities.add(ability));
+          }});
+
+          card.querySelectorAll(".ability-pill").forEach((pill) => {{
+            pill.hidden = !visibleAbilities.has(pill.dataset.ability);
+          }});
+
+          const abilitiesLabel = card.querySelector(".abilities-label");
+          const abilityList = card.querySelector(".ability-list");
+
+          if (abilitiesLabel && abilityList) {{
+            const hasVisibleAbilities = visibleAbilities.size > 0;
+            abilitiesLabel.hidden = !hasVisibleAbilities;
+            abilityList.hidden = !hasVisibleAbilities;
+          }}
+
+          const count = card.querySelector(".count");
+          if (count) {{
+            count.textContent = visibleInCard + " Pokémon";
+          }}
+
+          if (visibleInCard > 0) {{
+            visibleLocations += 1;
+            visiblePokemon += visibleInCard;
+          }}
+        }});
+
+        const locationWord =
+          visibleLocations === 1 ? "location" : "locations";
+
+        summary.textContent =
+          visiblePokemon +
+          " matching Pokémon in " +
+          visibleLocations +
+          " " +
+          locationWord;
+
+        noResults.hidden = visiblePokemon !== 0;
+      }}
+
+      [
+        pokemonInput,
+        locationInput,
+        regionInput,
+        abilityInput,
+      ].forEach((input) => {{
+        input.addEventListener("input", applyFilters);
+      }});
+
+      clearButton.addEventListener("click", () => {{
+        pokemonInput.value = "";
+        locationInput.value = "";
+        regionInput.value = "";
+        abilityInput.value = "";
+        applyFilters();
+        pokemonInput.focus();
+      }});
+
+      applyFilters();
+    }})();
+  </script>
+
   <footer>Generated automatically by GitHub Actions on {generated_at}</footer>
 </body>
 </html>
