@@ -521,8 +521,8 @@ def render_page(
     color: var(--text);
   }}
   .filter-field input:focus {{
-    outline: 2px solid var(--brand-blue);
-    outline-offset: 1px;
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
   }}
   .filter-actions {{
     display: flex;
@@ -670,7 +670,10 @@ def render_page(
             const pokemonMatches =
               tile.dataset.pokemon.includes(pokemonFilter);
             const abilityMatches =
-              tile.dataset.abilities.includes(abilityFilter);
+              !abilityFilter ||
+              tile.dataset.abilities
+                .split(" ")
+                .some((ability) => ability.includes(abilityFilter));
 
             const visible =
               cardMatches && pokemonMatches && abilityMatches;

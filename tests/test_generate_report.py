@@ -201,3 +201,87 @@ def test_render_page_contains_live_filter_controls():
     assert 'id="no-results"' in html
     assert 'addEventListener("input", applyFilters)' in html
     assert "visibleAbilities" in html
+
+
+
+def test_live_filter_checks_abilities_individually():
+    """Ability search checks each ability instead of one joined string."""
+    entry = {
+        "region": "Sinnoh",
+        "location": "Canalave-City",
+        "pokemon_count": 1,
+        "pokemons": ["gyarados"],
+        "pokemon_abilities": {
+            "gyarados": ["rain-dish", "rattled"],
+        },
+        "ability_count": 2,
+        "abilities": ["rain-dish", "rattled"],
+    }
+    info_map = {
+        "gyarados": (None, ["water"]),
+    }
+
+    html = gr.render_page([entry], info_map)
+
+    assert '.split(" ")' in html
+    assert ".some((ability) => ability.includes(abilityFilter))" in html
+    assert "tile.dataset.abilities.includes(abilityFilter)" not in html
+
+
+
+def test_search_metadata_escapes_attribute_values():
+    """Search metadata safely escapes HTML-sensitive characters."""
+    html = gr.render_pokemon_tile(
+        'Gyarados & "Co"',
+        None,
+        ["water"],
+        ['Intimidate & Guard', 'Moxie "Boost"'],
+    )
+
+    assert (
+        'data-pokemon="gyarados &amp; &quot;co&quot;"'
+        in html
+    )
+    assert (
+        'data-abilities="intimidate &amp; guard '
+        'moxie &quot;boost&quot;"'
+        in html
+    )
+
+
+def test_location_search_metadata_escapes_attribute_values():
+    """Region and location metadata stay valid inside HTML attributes."""
+    entry = {
+        "region": 'Sinnoh & "East"',
+        "location": "Canalave <Harbor>",
+        "pokemon_count": 1,
+        "pokemons": ["gyarados"],
+        "pokemon_abilities": {
+            "gyarados": ["intimidate"],
+        },
+        "abilities": ["intimidate"],
+    }
+    info_map = {
+        "gyarados": (None, ["water"]),
+    }
+
+    html = gr.render_location_card(entry, info_map)
+
+    assert (
+        'data-region="sinnoh &amp; &quot;east&quot;"'
+        in html
+    )
+    assert (
+        'data-location="canalave &lt;harbor&gt;"'
+        in html
+    )
+
+
+
+def test_filter_focus_indicator_uses_theme_text_color():
+    """Filter focus outline adapts to the active light or dark theme."""
+    html = gr.render_page([], {})
+
+    assert "outline: 2px solid var(--text);" in html
+    assert "outline-offset: 2px;" in html
+    assert "outline: 2px solid var(--brand-blue);" not in html
