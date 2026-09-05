@@ -44,13 +44,7 @@ jobs:
         run: python -m pip install --upgrade pip && pip install -e ".[dev]"
 
       - name: Run multi-location pipeline
-        run: |
-          python -m pokemon_pipeline canalave-city-area
-          python -m pokemon_pipeline eterna-forest-area
-          python -m pokemon_pipeline.transform
-          python -m pokemon_pipeline.validate canalave-city-area
-          python -m pokemon_pipeline.validate eterna-forest-area
-          python -m pokemon_pipeline.aggregate
+        run: python -m pokemon_pipeline.pipeline canalave-city-area eterna-forest-area
 
       - name: Generate report
         run: python -m pokemon_pipeline.report
