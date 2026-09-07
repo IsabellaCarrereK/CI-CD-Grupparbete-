@@ -44,7 +44,17 @@ jobs:
         run: python -m pip install --upgrade pip && pip install -e ".[dev]"
 
       - name: Run multi-location pipeline
-        run: python -m pokemon_pipeline.pipeline canalave-city-area eterna-forest-area
+        run: >-
+          python -m pokemon_pipeline.pipeline
+          eterna-forest-area
+          valley-windworks-area
+          fuego-ironworks-area
+          ilex-forest-area
+          johto-route-32-area
+          johto-route-34-area
+          viridian-forest-area
+          kanto-route-22-area
+          kanto-route-25-area
 
       - name: Generate report
         run: python -m pokemon_pipeline.report
