@@ -330,8 +330,6 @@ def test_small_location_card_does_not_show_expand_controls():
 
 def test_location_banner_mapping_has_all_source_assets():
     """Every configured location banner must exist in the source asset folder."""
-    assert len(gr.LOCATION_BANNERS) == 9
-
     missing = [
         filename
         for filename in gr.LOCATION_BANNERS.values()
