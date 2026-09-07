@@ -285,3 +285,65 @@ def test_filter_focus_indicator_uses_theme_text_color():
     assert "outline: 2px solid var(--text);" in html
     assert "outline-offset: 2px;" in html
     assert "outline: 2px solid var(--brand-blue);" not in html
+
+
+def test_large_location_card_has_six_pokemon_preview_controls():
+    """Locations above six Pokemon expose the compact preview controls."""
+    pokemons = [f"pokemon-{number}" for number in range(1, 9)]
+    entry = {
+        "region": "Kanto",
+        "location": "kanto-route-25",
+        "pokemon_count": 8,
+        "pokemons": pokemons,
+        "pokemon_abilities": {},
+        "abilities": [],
+    }
+    info_map = {name: (None, []) for name in pokemons}
+
+    html = gr.render_location_card(entry, info_map)
+
+    assert 'data-preview-count="6"' in html
+    assert 'data-expanded="false"' in html
+    assert "Showing 6 of 8 Pokémon" in html
+    assert "Show all 8 Pokémon" in html
+    assert 'aria-expanded="false"' in html
+
+
+def test_small_location_card_does_not_show_expand_controls():
+    """Locations with six or fewer Pokemon need no expand/collapse control."""
+    pokemons = [f"pokemon-{number}" for number in range(1, 7)]
+    entry = {
+        "region": "Johto",
+        "location": "ilex-forest",
+        "pokemon_count": 6,
+        "pokemons": pokemons,
+        "pokemon_abilities": {},
+        "abilities": [],
+    }
+    info_map = {name: (None, []) for name in pokemons}
+
+    html = gr.render_location_card(entry, info_map)
+
+    assert "Showing 6 of 6 Pokémon" not in html
+    assert 'class="expand-toggle"' not in html
+
+
+def test_location_banner_mapping_has_all_source_assets():
+    """Every configured location banner must exist in the source asset folder."""
+    assert len(gr.LOCATION_BANNERS) == 9
+
+    missing = [
+        filename
+        for filename in gr.LOCATION_BANNERS.values()
+        if not (gr.BANNER_SOURCE_DIR / filename).is_file()
+    ]
+
+    assert missing == []
+
+
+def test_location_banner_css_uses_site_asset_path_and_unknown_falls_back():
+    """Known locations use copied site assets; unknown locations degrade safely."""
+    assert gr.location_banner_css_value("viridian-forest") == (
+        "url('assets/location-banners/viridian-forest.webp')"
+    )
+    assert gr.location_banner_css_value("unknown-place") == "none"
